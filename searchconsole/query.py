@@ -131,7 +131,7 @@ class Query:
             dimension (str): Dimension you would like to filter on.
             expression (str): The value you would like to filter.
             operator (str): The operator you would like to use to filter.
-                Possible values: equals, contains, notContains.
+                Possible values: equals, contains, notContains, includingRegex, excludingRegex.
             group_type (str): The way in which you would like multiple filters
                 to combine. Note: currently only 'and' is supported by the API.
 
@@ -164,7 +164,7 @@ class Query:
         Return a new query that filters for the specified search type.
         Args:
             search_type (str): The search type you would like to report on.
-                Possible values: 'web' (default), 'image', 'video'.
+                Possible values: 'web' (default), 'image', 'video', 'discover','googleNews'.
 
         Returns:
             `searchconsole.query.Query`
@@ -174,7 +174,7 @@ class Query:
             <searchconsole.query.Query(...)>
         """
 
-        self.raw['searchType'] = search_type
+        self.raw['type'] = search_type
 
         return self
 
@@ -337,11 +337,19 @@ class Report:
         self.queries = []
 
         self.dimensions = query.raw.get('dimensions', [])
-        self.metrics = ['clicks', 'impressions', 'ctr', 'position']
+        self.metrics = self._build_metrics(query)
         self.columns = self.dimensions + self.metrics
         self.Row = collections.namedtuple('Row', self.columns)
         self.rows = []
         self.append(raw, query)
+
+    @staticmethod
+    def _build_metrics(query):
+        metrics = ['clicks', 'impressions', 'ctr', 'position']
+        # Not all metrics are supported by all reports types.
+        if query.raw.get('type') in ('discover', 'googleNews'):
+            metrics.remove('position')
+        return metrics
 
     def append(self, raw, query):
         self.raw.append(raw)
